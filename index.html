@@ -19,6 +19,10 @@
 </head>
 <body>
     <script>
+        let upperLeftLeg;
+        let lowerLeftLeg;
+        let upperRightLeg;
+        let lowerRightLeg;
         var shouldersDistance = 0.5,
             upperArmLength = 0.4,
             lowerArmLength = 0.4,
@@ -75,11 +79,11 @@
             world.solver.iterations = 100;
             world.solver.tolerance = 0.002;
             // Lower legs
-            var lowerLeftLeg = new p2.Body({
+            lowerLeftLeg = new p2.Body({
                 mass: 1,
                 position: [-shouldersDistance/2,lowerLegLength / 2],
             });
-            var lowerRightLeg = new p2.Body({
+            lowerRightLeg = new p2.Body({
                 mass: 1,
                 position: [shouldersDistance/2,lowerLegLength / 2],
             });
@@ -88,11 +92,11 @@
             world.addBody(lowerLeftLeg);
             world.addBody(lowerRightLeg);
             // Upper legs
-            var upperLeftLeg = new p2.Body({
+            upperLeftLeg = new p2.Body({
                 mass: 1,
                 position: [-shouldersDistance/2,lowerLeftLeg.position[1]+lowerLegLength/2+upperLegLength / 2],
             });
-            var upperRightLeg = new p2.Body({
+            upperRightLeg = new p2.Body({
                 mass: 1,
                 position: [shouldersDistance/2,lowerRightLeg.position[1]+lowerLegLength/2+upperLegLength / 2],
             });
@@ -227,6 +231,29 @@
             this.newShapeCollisionGroup = OTHER;
             this.newShapeCollisionMask =  BODYPARTS|OTHER|GROUND;
         });
+      window.addEventListener('keydown', keydownHandler);
+
+      const FORCE_MULTIPLIER = 3;
+      function keydownHandler(evt) {
+        switch (evt.keyCode) {
+          case 81: //q
+            upperLeftLeg.applyImpulseLocal([-1,0],[1*FORCE_MULTIPLIER,2*FORCE_MULTIPLIER]);
+            break;
+          case 87: //w
+            lowerLeftLeg.applyImpulseLocal([-1,0],[1*FORCE_MULTIPLIER,2*FORCE_MULTIPLIER]);
+            break;
+          case 73: //i
+            upperRightLeg.applyImpulseLocal([-1,0],[1*FORCE_MULTIPLIER,2*FORCE_MULTIPLIER]);
+            break;
+          case 79: //o
+            lowerRightLeg.applyImpulseLocal([-1,0],[1*FORCE_MULTIPLIER,2*FORCE_MULTIPLIER]);
+            break;
+        }
+      }
     </script>
+    Q - Move upper left leg forward
+    W - Move lower left leg forward
+    I - Move upper right leg forward
+    O - Move lower right leg forward
 </body>
 </html>
