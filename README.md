@@ -2,17 +2,6 @@
 
 An example ragdoll leveraging p2.js physics engine.
 
-## Controls
-
-Q - Move upper left leg forward
-
-W - Move lower left leg forward
-
-I - Move upper right leg forward
-
-O - Move lower right leg forward
-
-
 ## Findings
 
 * Ragdoll physics are top-notch

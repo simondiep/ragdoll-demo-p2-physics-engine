@@ -3,7 +3,7 @@
 
 <head>
     <title>Ragdoll demo - p2.js physics engine</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p2.js/0.7.1/p2.min.js"></script>
+    <script src="https://cdn.rawgit.com/simondiep/p2.js/acbda08c/build/p2.min.js"></script>
     <style>
         html,
         body {
@@ -25,10 +25,13 @@
         let ctx;
         let w, h;
 
+        let wallMaterials = [];
         let upperLeftLeg;
         let lowerLeftLeg;
         let upperRightLeg;
         let lowerRightLeg;
+        let lowerLeftArm;
+        let lowerRightArm;
         const shouldersDistance = 0.5,
             upperArmLength = 0.4,
             lowerArmLength = 0.4,
@@ -49,8 +52,9 @@
             bodyPartShapes = [],
             world;
 
+        // Zoom is critical to syncing up the p2 values to the canvas
         let zoom = 50;
-        const FORCE_MULTIPLIER = 3;
+        const FORCE_MULTIPLIER = 5;
 
         window.onload = () => {
             // Init canvas
@@ -62,7 +66,16 @@
 
             window.addEventListener('keydown', keydownHandler);
             createWorld();
-            createRagdoll();
+            createRagdoll('#FFBC42');
+
+            // for (let bodyPart of bodyPartShapes) {
+            //     for (let wallMaterial of wallMaterials) {
+            //         const frictionContactMaterial = new p2.ContactMaterial(bodyPart.material, wallMaterial, {
+            //             friction: 1,
+            //         });
+            //         world.addContactMaterial(frictionContactMaterial);
+            //     }
+            // }
 
             // To animate the bodies, we must step the world forward in time, using a fixed time step size.
             // The World will run substeps and interpolate automatically for us, to get smooth animation.
@@ -113,16 +126,16 @@
         function keydownHandler(evt) {
             switch (evt.keyCode) {
                 case 81: //q
-                    upperLeftLeg.applyImpulseLocal([-1, 0], [1 * FORCE_MULTIPLIER, 2 * FORCE_MULTIPLIER]);
+                    lowerLeftArm.applyImpulseLocal([-1 * FORCE_MULTIPLIER, 1 * FORCE_MULTIPLIER]);
                     break;
                 case 87: //w
-                    lowerLeftLeg.applyImpulseLocal([-1, 0], [1 * FORCE_MULTIPLIER, 2 * FORCE_MULTIPLIER]);
-                    break;
-                case 73: //i
-                    upperRightLeg.applyImpulseLocal([-1, 0], [1 * FORCE_MULTIPLIER, 2 * FORCE_MULTIPLIER]);
+                    lowerLeftLeg.applyImpulseLocal([-1 * FORCE_MULTIPLIER, 1 * FORCE_MULTIPLIER]);
                     break;
                 case 79: //o
-                    lowerRightLeg.applyImpulseLocal([-1, 0], [1 * FORCE_MULTIPLIER, 2 * FORCE_MULTIPLIER]);
+                    lowerRightArm.applyImpulseLocal([1 * FORCE_MULTIPLIER, 1 * FORCE_MULTIPLIER]);
+                    break;
+                case 80: //p
+                    lowerRightLeg.applyImpulseLocal([1 * FORCE_MULTIPLIER, 1 * FORCE_MULTIPLIER]);
                     break;
             }
         }
@@ -135,21 +148,13 @@
             ctx.translate(x, y);     // Translate to the center of the box
             ctx.rotate(body.interpolatedAngle);  // Rotate to the box body frame
             if (s instanceof p2.Box) {
-                ctx.fillStyle = '#FFBC42';
+                ctx.fillStyle = s.color;
                 ctx.fillRect(-s.width / 2, -s.height / 2, s.width, s.height);
             } else if (s instanceof p2.Circle) {
-                ctx.fillStyle = '#FFBC42';
+                ctx.fillStyle = s.color;
                 ctx.beginPath();
                 ctx.arc(0, 0, s.radius, 0, 2 * Math.PI);
                 ctx.fill();
-                ctx.closePath();
-            } else if (s instanceof p2.Plane) {
-                ctx.strokeStyle = 'white';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(-w, y);
-                ctx.lineTo(w, y);
-                ctx.stroke();
                 ctx.closePath();
             }
             ctx.restore();
@@ -161,29 +166,51 @@
             });
             world.solver.iterations = 100;
             world.solver.tolerance = 0.002;
-            // Create ground
-            const planeShape = new p2.Plane();
-            const plane = new p2.Body({
-                position: [0, -1],
-            });
-            plane.addShape(planeShape);
-            planeShape.collisionGroup = GROUND;
-            planeShape.collisionMask = BODYPARTS | OTHER;
-            world.addBody(plane);
+
+            // floor
+            addStaticBox(0,-4,0,12,1);
+
+            // ceiling
+            addStaticBox(0,4,0,12,1);
+
+            // left wall
+            addStaticBox(-6,0,0,1,12);
+
+            // right wall
+            addStaticBox(6,0,0,1,12);
         }
 
-        function createRagdoll() {
-            const headShape = new p2.Circle({ radius: headRadius }),
-                upperArmShapeLeft = new p2.Box({ width: upperArmLength, height: upperArmSize }),
-                upperArmShapeRight = new p2.Box({ width: upperArmLength, height: upperArmSize }),
-                lowerArmShapeLeft = new p2.Box({ width: lowerArmLength, height: lowerArmSize }),
-                lowerArmShapeRight = new p2.Box({ width: lowerArmLength, height: lowerArmSize }),
-                upperBodyShape = new p2.Box({ width: shouldersDistance, height: upperBodyLength }),
-                pelvisShape = new p2.Box({ width: shouldersDistance, height: pelvisLength }),
-                upperLegShapeLeft = new p2.Box({ width: upperLegSize, height: upperLegLength }),
-                upperLegShapeRight = new p2.Box({ width: upperLegSize, height: upperLegLength }),
-                lowerLegShapeLeft = new p2.Box({ width: lowerLegSize, height: lowerLegLength }),
-                lowerLegShapeRight = new p2.Box({ width: lowerLegSize, height: lowerLegLength });
+        function addStaticBox(x, y, angle, width, height){
+            var shape = new p2.Box({
+                collisionGroup: GROUND,
+                collisionMask: BODYPARTS | OTHER,
+                width: width,
+                height: height,
+                material: new p2.Material(),
+            });
+            shape.color = '#4a4c4f';
+            var body = new p2.Body({
+                position: [x, y],
+                angle: angle,
+            });
+            body.addShape(shape);
+            world.addBody(body);
+
+            wallMaterials.push[shape.material];
+        }
+
+        function createRagdoll(color) {
+            const headShape = new p2.Circle({ radius: headRadius, material: new p2.Material() }),
+                upperArmShapeLeft = new p2.Box({ width: upperArmLength, height: upperArmSize, material: new p2.Material() }),
+                upperArmShapeRight = new p2.Box({ width: upperArmLength, height: upperArmSize, material: new p2.Material() }),
+                lowerArmShapeLeft = new p2.Box({ width: lowerArmLength, height: lowerArmSize, material: new p2.Material() }),
+                lowerArmShapeRight = new p2.Box({ width: lowerArmLength, height: lowerArmSize, material: new p2.Material() }),
+                upperBodyShape = new p2.Box({ width: shouldersDistance, height: upperBodyLength, material: new p2.Material() }),
+                pelvisShape = new p2.Box({ width: shouldersDistance, height: pelvisLength, material: new p2.Material() }),
+                upperLegShapeLeft = new p2.Box({ width: upperLegSize, height: upperLegLength, material: new p2.Material() }),
+                upperLegShapeRight = new p2.Box({ width: upperLegSize, height: upperLegLength, material: new p2.Material() }),
+                lowerLegShapeLeft = new p2.Box({ width: lowerLegSize, height: lowerLegLength, material: new p2.Material() }),
+                lowerLegShapeRight = new p2.Box({ width: lowerLegSize, height: lowerLegLength, material: new p2.Material() });
             bodyPartShapes.push(
                 headShape,
                 upperArmShapeRight,
@@ -201,6 +228,7 @@
                 const s = bodyPartShapes[i];
                 s.collisionGroup = BODYPARTS;
                 s.collisionMask = GROUND | OTHER;
+                s.color = color;
             }
 
             // Lower legs
@@ -264,12 +292,12 @@
             world.addBody(upperLeftArm);
             world.addBody(upperRightArm);
             // lower arms
-            const lowerLeftArm = new p2.Body({
+            lowerLeftArm = new p2.Body({
                 mass: 1,
                 position: [upperLeftArm.position[0] - lowerArmLength / 2 - upperArmLength / 2,
                 upperLeftArm.position[1]],
             });
-            const lowerRightArm = new p2.Body({
+            lowerRightArm = new p2.Body({
                 mass: 1,
                 position: [upperRightArm.position[0] + lowerArmLength / 2 + upperArmLength / 2,
                 upperRightArm.position[1]],
@@ -347,6 +375,7 @@
         }
     </script>
     <canvas width="600" height="400" id="myCanvas"></canvas>
+    <div>QWOP to move</div>
 </body>
 
 </html>
